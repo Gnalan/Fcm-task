@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   Pressable,
   Image,
   StatusBar,
+  Alert,
+  AppState,
+  ActivityIndicator,
 } from "react-native";
 import { colors } from "../components/colors";
 import { useNavigation } from "@react-navigation/native";
@@ -14,17 +17,105 @@ import { devicewidth, deviceheight, borderradius } from "../components/Dimension
 import { Images } from "../components/images";
 import { RFValue } from "react-native-responsive-fontsize";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  checkNotificationPermission,
+  requestNotificationPermission,
+  openSettings,
+} from "../helpers/Permission";
+import {
+  getMessaging,
+  registerDeviceForRemoteMessages,
+  getToken,
+} from "@react-native-firebase/messaging";
 
 const Welcome = () => {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
-  const onAllowNotifications = () => {
+  const navigateToCaseList = useCallback(() => {
     navigation.navigate("CaseList");
+  }, [navigation]);
+
+  const getFcmToken = async () => {
+    try {
+      const messaging = getMessaging();
+      await registerDeviceForRemoteMessages(messaging);
+      const token = await getToken(messaging);
+      console.log("FCM Token:", token);
+      return token;
+    } catch (error) {
+      console.log("Error getting FCM Token:", error);
+    }
+  };
+
+  useEffect(() => {
+    // 1. Check if permission is already granted on app launch
+    const checkInitial = async () => {
+      const status = await checkNotificationPermission();
+      if (status === "granted") {
+        await getFcmToken();
+        navigateToCaseList();
+      }
+    };
+    checkInitial();
+
+    // 2. Re-check status when user returns from Settings
+    const handleAppStateChange = async (nextAppState) => {
+      if (nextAppState === "active") {
+        const status = await checkNotificationPermission();
+        if (status === "granted") {
+          await getFcmToken();
+          navigateToCaseList();
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [navigateToCaseList]);
+
+  const showPermissionOffAlert = () => {
+    Alert.alert(
+      "Notifications are off",
+      "Allow notifications to get new cases instantly.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Open Settings",
+          onPress: () => {
+            openSettings().catch((err) =>
+              console.log("Unable to open settings:", err)
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const onAllowNotifications = async () => {
+    if (loading) return; // Guard against double taps
+    setLoading(true);
+
+    try {
+      const status = await requestNotificationPermission();
+
+      if (status === "granted") {
+        await getFcmToken();
+        navigateToCaseList();
+      } else if (status === "denied" || status === "blocked") {
+        showPermissionOffAlert();
+      }
+    } catch (err) {
+      console.log("Permission request error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onNotNow = () => {
-    // Placeholder handler for dismissing/skipping permission request
-    console.log("Not now pressed");
+    showPermissionOffAlert();
   };
 
   return (
@@ -51,13 +142,18 @@ const Welcome = () => {
           <Pressable
             style={({ pressed }) => [
               styles.primaryButton,
-              pressed && styles.buttonPressed,
+              (pressed || loading) && styles.buttonPressed,
             ]}
             onPress={onAllowNotifications}
+            disabled={loading}
             accessibilityRole="button"
             accessibilityLabel="Allow notifications"
           >
-            <Text style={styles.primaryButtonText}>Allow notifications</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Allow notifications</Text>
+            )}
           </Pressable>
 
           <Pressable

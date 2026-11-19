@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "143703059153",
+    "project_id": "fcm-notification-5391e",
+    "storage_bucket": "fcm-notification-5391e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:143703059153:android:628b361ec35fa34229b3f0",
+        "android_client_info": {
+          "package_name": "com.mytask"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVN79eC71-vGBmMomU9M5YgrGxRIP5TBM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

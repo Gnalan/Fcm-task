@@ -1,6 +1,74 @@
-//persmission helper
+// permission helper
 import { Platform, Alert } from "react-native";
-import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
+import {
+  check,
+  request,
+  checkNotifications,
+  requestNotifications,
+  openSettings,
+  PERMISSIONS,
+  RESULTS,
+} from "react-native-permissions";
+
+export { openSettings };
+
+/**
+ * Maps react-native-permissions RESULTS to our 4 standard statuses:
+ * 'granted' | 'denied' | 'blocked' | 'unavailable'
+ */
+const mapPermissionStatus = (status) => {
+  switch (status) {
+    case RESULTS.GRANTED:
+    case RESULTS.LIMITED:
+      return "granted";
+    case RESULTS.DENIED:
+      return "denied";
+    case RESULTS.BLOCKED:
+      return "blocked";
+    case RESULTS.UNAVAILABLE:
+    default:
+      return "unavailable";
+  }
+};
+
+/**
+ * Check current notification permission status
+ * @returns {Promise<'granted' | 'denied' | 'blocked' | 'unavailable'>}
+ */
+export const checkNotificationPermission = async () => {
+  try {
+    // Android < 13 does not have POST_NOTIFICATIONS runtime permission; enabled by default
+    if (Platform.OS === "android" && Platform.Version < 33) {
+      return "granted";
+    }
+
+    const { status } = await checkNotifications();
+    return mapPermissionStatus(status);
+  } catch (error) {
+    console.log("Notification check error:", error);
+    return "unavailable";
+  }
+};
+
+/**
+ * Request notification permission (alert, badge, sound)
+ * Shows system popup on Android 13+ (API 33+) and iOS.
+ * @returns {Promise<'granted' | 'denied' | 'blocked' | 'unavailable'>}
+ */
+export const requestNotificationPermission = async () => {
+  try {
+    // Android < 13 does not have POST_NOTIFICATIONS runtime permission; treated as granted
+    if (Platform.OS === "android" && Platform.Version < 33) {
+      return "granted";
+    }
+
+    const { status } = await requestNotifications(["alert", "badge", "sound"]);
+    return mapPermissionStatus(status);
+  } catch (error) {
+    console.log("Notification request error:", error);
+    return "unavailable";
+  }
+};
 
 /**
  * Request storage permission for downloading or file access
@@ -13,15 +81,9 @@ export const requestStoragePermission = async () => {
     }
 
     if (Platform.OS === "android") {
-      // Android 13+ (API 33+)
       if (Platform.Version >= 33) {
-        // For Android 13+, reading/writing documents (like PDFs) in public directories 
-        // or using the Storage Access Framework does not require runtime permissions.
-        // READ_MEDIA_* permissions are strictly for images, video, and audio.
         return true;
-      } 
-      // Android 12 and below
-      else {
+      } else {
         const permission = PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE;
         const status = await check(permission);
 
@@ -42,7 +104,7 @@ export const requestStoragePermission = async () => {
         }
       }
     }
-    
+
     return false;
   } catch (error) {
     console.log("Permission check error:", error);
