@@ -1,4 +1,3 @@
-// permission helper
 import { Platform, Alert } from "react-native";
 import {
   check,
@@ -12,10 +11,6 @@ import {
 
 export { openSettings };
 
-/**
- * Maps react-native-permissions RESULTS to our 4 standard statuses:
- * 'granted' | 'denied' | 'blocked' | 'unavailable'
- */
 const mapPermissionStatus = (status) => {
   switch (status) {
     case RESULTS.GRANTED:

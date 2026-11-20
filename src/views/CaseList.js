@@ -19,7 +19,6 @@ import { devicewidth, deviceheight } from "../components/Dimensions";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { openSettings } from "../helpers/Permission";
 import {
     getMessaging,
     onMessage,
@@ -38,13 +37,11 @@ const CaseList = () => {
     const listRef = useRef(null);
     const openedCaseIdRef = useRef(null);
 
-    // Load cases from AsyncStorage
     const loadCases = useCallback(async () => {
         try {
             const stored = await AsyncStorage.getItem(CASES_KEY);
             if (stored) {
                 const list = JSON.parse(stored);
-                // Purge any old mock data and dedupe existing stored records
                 const seen = new Set();
                 const deduped = [];
                 for (const c of list) {
@@ -68,15 +65,12 @@ const CaseList = () => {
         }
     }, []);
 
-    // Add a single case to list & AsyncStorage
     const addCase = useCallback((newCase) => {
         setCases((prev) => {
-            // Dedupe by id only
             const alreadyExists = prev.some((c) => c.id === newCase.id);
             if (alreadyExists) {
                 return prev;
             }
-            // Prepend newCase WITHOUT changing status of previous cases
             const next = [newCase, ...prev];
             AsyncStorage.setItem(CASES_KEY, JSON.stringify(next)).catch((err) =>
                 console.log("Save error:", err)
@@ -84,13 +78,11 @@ const CaseList = () => {
             return next;
         });
 
-        // Scroll to top
         setTimeout(() => {
             listRef.current?.scrollToOffset({ offset: 0, animated: true });
         }, 300);
     }, []);
 
-    // Show system notification using notifee in foreground
     const showNotification = async (title, body, id) => {
         try {
             const channelId = await notifee.createChannel({
@@ -117,7 +109,6 @@ const CaseList = () => {
         }
     };
 
-    // 1. Initial load on mount and when screen regains focus
     useFocusEffect(
         useCallback(() => {
             if (openedCaseIdRef.current) {
@@ -140,7 +131,6 @@ const CaseList = () => {
         }, [loadCases])
     );
 
-    // Hardware back press confirmation on CaseList
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => {
@@ -160,7 +150,6 @@ const CaseList = () => {
         }, [])
     );
 
-    // 2. Listen for foreground FCM messages
     useEffect(() => {
         const messaging = getMessaging();
         const unsubscribe = onMessage(messaging, async (remoteMessage) => {
@@ -196,17 +185,17 @@ const CaseList = () => {
                 receivedAt: Date.now(),
             };
 
-            // Add to list immediately (no refresh needed)
+
             addCase(newCase);
 
-            // Display system notification in tray
+
             await showNotification(title, desc, id);
         });
 
         return () => unsubscribe();
     }, [addCase]);
 
-    // 3. Listen for AppState change (re-check cases when returning from background)
+
     useEffect(() => {
         const subscription = AppState.addEventListener("change", (nextState) => {
             if (nextState === "active") {
@@ -216,7 +205,7 @@ const CaseList = () => {
         return () => subscription.remove();
     }, [loadCases]);
 
-    // 4. Listen for notifee tap events while app is running/backgrounded
+
     useEffect(() => {
         const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
             if (type === EventType.PRESS) {
@@ -227,7 +216,6 @@ const CaseList = () => {
         return () => unsubscribe();
     }, [loadCases]);
 
-    // 5. Listen for FCM notification opened from background
     useEffect(() => {
         const messaging = getMessaging();
         const unsubscribe = onNotificationOpenedApp(
@@ -265,7 +253,6 @@ const CaseList = () => {
         return () => unsubscribe();
     }, [addCase, loadCases]);
 
-    // 6. Check if app was opened from killed state by tapping notification
     useEffect(() => {
         const checkInitial = async () => {
             try {
@@ -344,8 +331,6 @@ const CaseList = () => {
     return (
         <SafeAreaProvider style={styles.safe}>
             <StatusBar barStyle="dark-content" backgroundColor={colors.cardBackground} />
-
-            {/* Header */}
             <View style={styles.head}>
                 <View style={styles.headLeft}>
                     <Text style={styles.title}>Cases</Text>
@@ -381,8 +366,6 @@ const CaseList = () => {
                     </View>
                 </View>
             </View>
-
-            {/* Cases List */}
             <FlatList
                 ref={listRef}
                 data={cases}

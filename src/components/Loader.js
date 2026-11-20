@@ -30,7 +30,7 @@ const Loader = ({ visibility, onBack }) => {
           width: width,
         }}
       >
-        <ActivityIndicator size="large" color={"#FFFF"}/>
+        <ActivityIndicator size="large" color={"#FFFF"} />
         <StatusBar barStyle="default" />
       </View>
     </Modal>

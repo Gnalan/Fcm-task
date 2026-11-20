@@ -58,15 +58,14 @@ const SettingsPage = () => {
     };
 
     const displayToken =
-        token ||
-        "fcm_token_example_1234567890_abcdef1234567890abcdef1234567890";
+        token;
 
     return (
         <SafeAreaProvider style={styles.safe}>
             <StatusBar barStyle="dark-content" backgroundColor={colors.cardBackground} />
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-                {/* Header */}
+
                 <View style={styles.head}>
                     <TouchableOpacity
                         style={styles.backBtn}
@@ -82,9 +81,7 @@ const SettingsPage = () => {
                     <Text style={styles.title}>Settings</Text>
                 </View>
 
-                {/* Main Card */}
                 <View style={styles.card}>
-                    {/* Device Info Row */}
                     <View style={styles.deviceRow}>
                         <Image
                             source={Images.deviceicon}
@@ -94,15 +91,12 @@ const SettingsPage = () => {
                         <Text style={styles.deviceTitle}>Device Information</Text>
                     </View>
 
-                    {/* Label */}
                     <Text style={styles.label}>FCM Token</Text>
 
-                    {/* Token Box */}
                     <View style={styles.tokenBox}>
                         <Text style={styles.tokenTxt}>{displayToken}</Text>
                     </View>
 
-                    {/* Copy Button */}
                     <TouchableOpacity
                         style={styles.copyBtn}
                         onPress={onCopy}
@@ -116,7 +110,6 @@ const SettingsPage = () => {
                         <Text style={styles.copyTxt}>Copy Token</Text>
                     </TouchableOpacity>
 
-                    {/* Success Message */}
                     {copied && (
                         <View style={styles.successRow}>
                             <View style={styles.checkCircle}>
@@ -125,11 +118,7 @@ const SettingsPage = () => {
                             <Text style={styles.successTxt}>Token copied successfully</Text>
                         </View>
                     )}
-
-                    {/* Divider */}
                     <View style={styles.divider} />
-
-                    {/* Footer Info Row */}
                     <View style={styles.infoRow}>
                         <View style={styles.infoCircle}>
                             <Text style={styles.infoI}>i</Text>

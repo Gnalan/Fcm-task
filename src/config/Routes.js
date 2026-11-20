@@ -18,8 +18,6 @@ const saveTappedCase = async (id, title, desc) => {
     try {
         const stored = await AsyncStorage.getItem(CASES_KEY);
         const existing = stored ? JSON.parse(stored) : [];
-
-        // Check if case is already stored by id
         const isDuplicate = id ? existing.some((c) => c.id === id) : false;
         if (isDuplicate) {
             return;
@@ -33,7 +31,7 @@ const saveTappedCase = async (id, title, desc) => {
             isNew: true,
             receivedAt: Date.now(),
         };
-        // Prepend WITHOUT modifying existing cases' statuses
+
         await AsyncStorage.setItem(CASES_KEY, JSON.stringify([newCase, ...existing]));
     } catch (e) {
         console.log("Error saving tapped case:", e);
@@ -46,7 +44,6 @@ const Routes = () => {
     useEffect(() => {
         const checkLaunchNotification = async () => {
             try {
-                // 1. Check if app was opened by tapping a notifee notification (killed state)
                 const notifeeInitial = await notifee.getInitialNotification();
                 if (notifeeInitial) {
                     console.log("Opened from notifee notification:", notifeeInitial);
@@ -60,7 +57,6 @@ const Routes = () => {
                     return;
                 }
 
-                // 2. Check if app was opened by tapping a FCM notification (killed state)
                 const messaging = getMessaging();
                 const fcmInitial = await getInitialNotification(messaging);
                 if (fcmInitial) {

@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     StatusBar,
     TouchableOpacity,
     Image,
@@ -79,9 +78,7 @@ const CaseDetail = () => {
             <StatusBar barStyle="dark-content" backgroundColor={colors.cardBackground} />
 
             <View style={styles.container}>
-                {/* Top Content */}
                 <View>
-                    {/* Back Button */}
                     <TouchableOpacity
                         style={styles.backBtn}
                         onPress={() => navigation.goBack()}
@@ -93,8 +90,6 @@ const CaseDetail = () => {
                             resizeMode="contain"
                         />
                     </TouchableOpacity>
-
-                    {/* Header Row */}
                     <View style={styles.headRow}>
                         <Text style={styles.idTxt} numberOfLines={1}>
                             {item.title || item.id}
@@ -106,10 +101,7 @@ const CaseDetail = () => {
                         </View>
                     </View>
 
-                    {/* Description */}
                     <Text style={styles.descTxt}>{item.desc}</Text>
-
-                    {/* Info Card */}
                     <View style={styles.card}>
                         <View style={styles.itemRow}>
                             <Text style={styles.label}>Title</Text>

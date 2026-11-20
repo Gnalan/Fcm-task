@@ -49,7 +49,6 @@ const Welcome = () => {
   };
 
   useEffect(() => {
-    // 1. Check if permission is already granted on app launch
     const checkInitial = async () => {
       const status = await checkNotificationPermission();
       if (status === "granted") {
@@ -58,8 +57,6 @@ const Welcome = () => {
       }
     };
     checkInitial();
-
-    // 2. Re-check status when user returns from Settings
     const handleAppStateChange = async (nextAppState) => {
       if (nextAppState === "active") {
         const status = await checkNotificationPermission();
@@ -95,7 +92,7 @@ const Welcome = () => {
   };
 
   const onAllowNotifications = async () => {
-    if (loading) return; // Guard against double taps
+    if (loading) return;
     setLoading(true);
 
     try {
@@ -122,7 +119,6 @@ const Welcome = () => {
     <SafeAreaProvider style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
       <View style={styles.container}>
-        {/* Upper content: Bell icon and description */}
         <View style={styles.contentContainer}>
           <View style={styles.iconCircle}>
             <Image
