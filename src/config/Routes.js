@@ -4,6 +4,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import Welcome from "../views/Welcome";
 import CaseList from "../views/CaseList";
 import CaseDetail from "../views/CaseDetail";
+import SettingsPage from "../views/SettingsPage";
 import { MyTransition } from "../components/navigationslide";
 import notifee from "@notifee/react-native";
 import { getMessaging, getInitialNotification } from "@react-native-firebase/messaging";
@@ -106,6 +107,7 @@ const Routes = () => {
                 <Stack.Screen name="Welcome" component={Welcome} />
                 <Stack.Screen name="CaseList" component={CaseList} />
                 <Stack.Screen name="CaseDetail" component={CaseDetail} />
+                <Stack.Screen name="SettingsPage" component={SettingsPage} />
             </Stack.Navigator>
         </NavigationContainer>
     );

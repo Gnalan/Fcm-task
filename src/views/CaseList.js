@@ -17,6 +17,7 @@ import { devicewidth, deviceheight } from "../components/Dimensions";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { openSettings } from "../helpers/Permission";
 import {
     getMessaging,
     onMessage,
@@ -327,19 +328,33 @@ const CaseList = () => {
                     <Text style={styles.sub}>{cases.length} cases assigned to you</Text>
                 </View>
 
-                <View style={styles.bellBtn}>
-                    <Image
-                        source={Images.notificationicon}
-                        style={styles.bell}
-                        resizeMode="contain"
-                    />
-                    {unreadCount > 0 && (
-                        <View style={styles.badgeCount}>
-                            <Text style={styles.badgeCountText}>
-                                {unreadCount > 99 ? "99+" : unreadCount}
-                            </Text>
-                        </View>
-                    )}
+                <View style={styles.headRight}>
+                    <TouchableOpacity
+                        style={styles.settingsBtn}
+                        activeOpacity={0.7}
+                        onPress={() => navigation.navigate("SettingsPage")}
+                    >
+                        <Image
+                            source={Images.settings}
+                            style={styles.settingsIcon}
+                            resizeMode="contain"
+                        />
+                    </TouchableOpacity>
+
+                    <View style={styles.bellBtn}>
+                        <Image
+                            source={Images.notificationicon}
+                            style={styles.bell}
+                            resizeMode="contain"
+                        />
+                        {unreadCount > 0 && (
+                            <View style={styles.badgeCount}>
+                                <Text style={styles.badgeCountText}>
+                                    {unreadCount > 99 ? "99+" : unreadCount}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -387,14 +402,34 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: Fonts.Bold,
-        fontSize: RFValue(28),
+        fontSize: RFValue(22),
         color: colors.textPrimary,
     },
     sub: {
         fontFamily: Fonts.Regular,
-        fontSize: RFValue(13.5),
+        fontSize: RFValue(13),
         color: colors.textSecondary,
         marginTop: deviceheight * 0.005,
+    },
+    headRight: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    settingsBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.white,
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginRight: 10,
+    },
+    settingsIcon: {
+        width: 24,
+        height: 24,
+
     },
     bellBtn: {
         width: 44,
@@ -480,7 +515,7 @@ const styles = StyleSheet.create({
     },
     cardId: {
         fontFamily: Fonts.Bold,
-        fontSize: RFValue(15),
+        fontSize: RFValue(14),
         color: colors.textPrimary,
         flex: 1,
         marginRight: 10,
