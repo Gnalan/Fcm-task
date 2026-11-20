@@ -45,42 +45,48 @@ const CASES_KEY = '@cases_list';
         const data = remoteMessage?.data || {};
         const notification = remoteMessage?.notification || {};
 
-        const id = data.id || data.caseId || remoteMessage?.messageId || `CASE${Date.now().toString().slice(-4)}`;
+        let id = data.id || data.caseId;
+        if (!id && remoteMessage?.messageId) {
+            const timePart = remoteMessage.messageId.split(':')[1]?.split('%')[0];
+            if (timePart && timePart.length >= 4) {
+                id = `CASE${timePart.slice(-4)}`;
+            }
+        }
+        if (!id) {
+            id = `CASE${Date.now().toString().slice(-4)}`;
+        }
+
         const title = notification.title || data.title || 'New Case Received';
         const desc = notification.body || data.body || data.desc || 'A new service case has been assigned';
 
-            try {
-                const stored = await AsyncStorage.getItem(CASES_KEY);
-                const existing = stored ? JSON.parse(stored) : [];
+        try {
+            const stored = await AsyncStorage.getItem(CASES_KEY);
+            const existing = stored ? JSON.parse(stored) : [];
 
-                // Dedupe by id: remove any old copy of same id, then prepend as newest
-                const filtered = existing.filter(c => c.id !== id);
+            // Dedupe by unique id
+            const isDuplicate = existing.some(c => c.id === id);
 
-                // Mark previous cases as not new
-                const updated = filtered.map(c => ({
-                    ...c,
-                    isNew: false,
-                    status: c.status === 'NEW' ? 'Open' : c.status,
-                }));
-
+            if (!isDuplicate) {
                 const newCase = {
                     id: id,
+                    title: title,
                     desc: desc,
                     status: 'NEW',
                     isNew: true,
                 };
+                // Prepend newCase WITHOUT changing status of previous cases
+                await AsyncStorage.setItem(CASES_KEY, JSON.stringify([newCase, ...existing]));
+            }
 
-                await AsyncStorage.setItem(CASES_KEY, JSON.stringify([newCase, ...updated]));
-
-    // If data-only, display system notification via notifee
-    // (If payload has 'notification', Android OS displays it automatically)
-    if (!remoteMessage?.notification) {
-        await showSystemNotification(title, desc, id);
-    }
-} catch (err) {
-    console.log('Background save error:', err);
-}
-});
+            // If data-only, display system notification via notifee
+            // (If payload has 'notification', Android OS displays it automatically)
+            if (!remoteMessage?.notification) {
+                await showSystemNotification(title, desc, id);
+            }
+        } catch (err) {
+            console.log('Background save error:', err);
+        }
+    });
 
 // Handle notifee background notification tap event
 notifee.onBackgroundEvent(async ({ type, detail }) => {

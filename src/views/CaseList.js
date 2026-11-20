@@ -15,12 +15,13 @@ import { Fonts } from "../components/fonts";
 import { Images } from "../components/images";
 import { devicewidth, deviceheight } from "../components/Dimensions";
 import { RFValue } from "react-native-responsive-fontsize";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
     getMessaging,
     onMessage,
     onNotificationOpenedApp,
+    getInitialNotification,
 } from "@react-native-firebase/messaging";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import notifee, { AndroidImportance, EventType } from "@notifee/react-native";
@@ -32,6 +33,7 @@ const CaseList = () => {
     const [cases, setCases] = useState([]);
     const [loaded, setLoaded] = useState(false);
     const listRef = useRef(null);
+    const openedCaseIdRef = useRef(null);
 
     // Load cases from AsyncStorage
     const loadCases = useCallback(async () => {
@@ -39,11 +41,19 @@ const CaseList = () => {
             const stored = await AsyncStorage.getItem(CASES_KEY);
             if (stored) {
                 const list = JSON.parse(stored);
-                // Purge any old mock data
-                const cleaned = list.filter(
-                    (c) => !["CASE1004", "CASE1003", "CASE1002"].includes(c.id)
-                );
-                setCases(cleaned);
+                // Purge any old mock data and dedupe existing stored records
+                const seen = new Set();
+                const deduped = [];
+                for (const c of list) {
+                    if (["CASE1004", "CASE1003", "CASE1002"].includes(c.id)) {
+                        continue;
+                    }
+                    if (!seen.has(c.id)) {
+                        seen.add(c.id);
+                        deduped.push(c);
+                    }
+                }
+                setCases(deduped);
             } else {
                 setCases([]);
             }
@@ -58,14 +68,13 @@ const CaseList = () => {
     // Add a single case to list & AsyncStorage
     const addCase = useCallback((newCase) => {
         setCases((prev) => {
-            // Dedupe by id: remove existing case if present, mark previous as not new, prepend
-            const filtered = prev.filter((c) => c.id !== newCase.id);
-            const updated = filtered.map((c) => ({
-                ...c,
-                isNew: false,
-                status: c.status === "NEW" ? "Open" : c.status,
-            }));
-            const next = [newCase, ...updated];
+            // Dedupe by id only
+            const alreadyExists = prev.some((c) => c.id === newCase.id);
+            if (alreadyExists) {
+                return prev;
+            }
+            // Prepend newCase WITHOUT changing status of previous cases
+            const next = [newCase, ...prev];
             AsyncStorage.setItem(CASES_KEY, JSON.stringify(next)).catch((err) =>
                 console.log("Save error:", err)
             );
@@ -103,10 +112,28 @@ const CaseList = () => {
         }
     };
 
-    // 1. Initial load on mount
-    useEffect(() => {
-        loadCases();
-    }, [loadCases]);
+    // 1. Initial load on mount and when screen regains focus
+    useFocusEffect(
+        useCallback(() => {
+            if (openedCaseIdRef.current) {
+                const targetId = openedCaseIdRef.current;
+                openedCaseIdRef.current = null;
+                setCases((prev) => {
+                    const next = prev.map((c) =>
+                        c.id === targetId
+                            ? { ...c, isNew: false, status: "Open" }
+                            : c
+                    );
+                    AsyncStorage.setItem(CASES_KEY, JSON.stringify(next)).catch(
+                        (err) => console.log("Save error:", err)
+                    );
+                    return next;
+                });
+            } else {
+                loadCases();
+            }
+        }, [loadCases])
+    );
 
     // 2. Listen for foreground FCM messages
     useEffect(() => {
@@ -117,11 +144,16 @@ const CaseList = () => {
             const data = remoteMessage?.data || {};
             const notification = remoteMessage?.notification || {};
 
-            const id =
-                data.id ||
-                data.caseId ||
-                remoteMessage?.messageId ||
-                `CASE${Date.now().toString().slice(-4)}`;
+            let id = data.id || data.caseId;
+            if (!id && remoteMessage?.messageId) {
+                const timePart = remoteMessage.messageId.split(":")[1]?.split("%")[0];
+                if (timePart && timePart.length >= 4) {
+                    id = `CASE${timePart.slice(-4)}`;
+                }
+            }
+            if (!id) {
+                id = `CASE${Date.now().toString().slice(-4)}`;
+            }
             const title =
                 notification.title || data.title || "New Case Received";
             const desc =
@@ -132,6 +164,7 @@ const CaseList = () => {
 
             const newCase = {
                 id,
+                title,
                 desc,
                 status: "NEW",
                 isNew: true,
@@ -175,16 +208,24 @@ const CaseList = () => {
             messaging,
             async (remoteMessage) => {
                 console.log("FCM notification opened from background:", remoteMessage);
-                const data = remoteMessage?.data || {};
-                const id = data.id || data.caseId || remoteMessage?.messageId;
-                if (id) {
-                    const desc =
-                        remoteMessage?.notification?.body ||
-                        data.body ||
-                        data.desc ||
-                        "A new service case has been assigned";
+                if (remoteMessage) {
+                    const data = remoteMessage.data || {};
+                    const notification = remoteMessage.notification || {};
+                    let id = data.id || data.caseId;
+                    if (!id && remoteMessage.messageId) {
+                        const timePart = remoteMessage.messageId.split(":")[1]?.split("%")[0];
+                        if (timePart && timePart.length >= 4) {
+                            id = `CASE${timePart.slice(-4)}`;
+                        }
+                    }
+                    if (!id) {
+                        id = `CASE${Date.now().toString().slice(-4)}`;
+                    }
+                    const title = notification.title || data.title || "New Case Received";
+                    const desc = notification.body || data.body || data.desc || "A new service case has been assigned";
                     addCase({
                         id,
+                        title,
                         desc,
                         status: "NEW",
                         isNew: true,
@@ -197,15 +238,64 @@ const CaseList = () => {
         return () => unsubscribe();
     }, [addCase, loadCases]);
 
+    // 6. Check if app was opened from killed state by tapping notification
+    useEffect(() => {
+        const checkInitial = async () => {
+            try {
+                const messaging = getMessaging();
+                const fcmInitial = await getInitialNotification(messaging);
+                if (fcmInitial) {
+                    console.log("Initial FCM notification in CaseList:", fcmInitial);
+                    const data = fcmInitial.data || {};
+                    const notification = fcmInitial.notification || {};
+                    let id = data.id || data.caseId;
+                    if (!id && fcmInitial.messageId) {
+                        const timePart = fcmInitial.messageId.split(":")[1]?.split("%")[0];
+                        if (timePart && timePart.length >= 4) {
+                            id = `CASE${timePart.slice(-4)}`;
+                        }
+                    }
+                    if (!id) {
+                        id = `CASE${Date.now().toString().slice(-4)}`;
+                    }
+                    const title = notification.title || data.title || "New Case Received";
+                    const desc = notification.body || data.body || data.desc || "A new service case has been assigned";
+                    addCase({
+                        id,
+                        title,
+                        desc,
+                        status: "NEW",
+                        isNew: true,
+                    });
+                }
+            } catch (err) {
+                console.log("Error checking initial notification in CaseList:", err);
+            }
+        };
+        checkInitial();
+    }, [addCase]);
+
+    const openCase = useCallback(
+        (item) => {
+            if (item.isNew || item.status === "NEW" || item.status === "New") {
+                openedCaseIdRef.current = item.id;
+            }
+            navigation.navigate("CaseDetail", { item });
+        },
+        [navigation]
+    );
+
     const renderItem = ({ item }) => {
         return (
             <TouchableOpacity
                 style={[styles.card, item.isNew && styles.newCard]}
-                onPress={() => navigation.navigate("CaseDetail", { item })}
+                onPress={() => openCase(item)}
                 activeOpacity={0.8}
             >
                 <View style={styles.row}>
-                    <Text style={styles.cardId}>{item.id}</Text>
+                    <Text style={styles.cardId} numberOfLines={1}>
+                        {item.title || item.id}
+                    </Text>
                     <View style={[styles.badge, item.isNew && styles.newBadge]}>
                         <Text style={[styles.badgeTxt, item.isNew && styles.newBadgeTxt]}>
                             {item.status}
@@ -219,6 +309,10 @@ const CaseList = () => {
 
     if (!loaded) return null;
 
+    const unreadCount = cases.filter(
+        (c) => c.isNew || c.status === "NEW" || c.status === "New"
+    ).length;
+
     return (
         <SafeAreaProvider style={styles.safe}>
             <StatusBar barStyle="dark-content" backgroundColor={colors.cardBackground} />
@@ -230,13 +324,20 @@ const CaseList = () => {
                     <Text style={styles.sub}>{cases.length} cases assigned to you</Text>
                 </View>
 
-                <TouchableOpacity style={styles.bellBtn} activeOpacity={0.7}>
+                <View style={styles.bellBtn}>
                     <Image
                         source={Images.notificationicon}
                         style={styles.bell}
                         resizeMode="contain"
                     />
-                </TouchableOpacity>
+                    {unreadCount > 0 && (
+                        <View style={styles.badgeCount}>
+                            <Text style={styles.badgeCountText}>
+                                {unreadCount > 99 ? "99+" : unreadCount}
+                            </Text>
+                        </View>
+                    )}
+                </View>
             </View>
 
             {/* Cases List */}
@@ -307,6 +408,27 @@ const styles = StyleSheet.create({
         height: 20,
         tintColor: colors.textPrimary,
     },
+    badgeCount: {
+        position: "absolute",
+        top: -4,
+        right: -4,
+        minWidth: 19,
+        height: 19,
+        borderRadius: 9.5,
+        backgroundColor: colors.indigo,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 4,
+        borderWidth: 1.5,
+        borderColor: colors.white,
+    },
+    badgeCountText: {
+        fontFamily: Fonts.Bold,
+        fontSize: RFValue(9.5),
+        color: colors.white,
+        textAlign: "center",
+        lineHeight: RFValue(12),
+    },
     list: {
         paddingHorizontal: devicewidth * 0.06,
         paddingTop: deviceheight * 0.015,
@@ -357,6 +479,8 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.Bold,
         fontSize: RFValue(15),
         color: colors.textPrimary,
+        flex: 1,
+        marginRight: 10,
     },
     cardSub: {
         fontFamily: Fonts.Regular,

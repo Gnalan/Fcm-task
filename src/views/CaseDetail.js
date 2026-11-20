@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
     View,
     Text,
@@ -13,16 +13,40 @@ import { devicewidth, deviceheight, borderradius } from "../components/Dimension
 import { RFValue } from "react-native-responsive-fontsize";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const CASES_KEY = "@cases_list";
 
 const CaseDetail = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const item = route.params?.item || {
-        id: "CASE1005",
+        id: "CASE0000",
+        title: "New Case Received",
         desc: "A new service case has been assigned",
         status: "NEW",
     };
+
+    const isOpen = item.status === "Open";
+
+    useEffect(() => {
+        if (!isOpen) {
+            (async () => {
+                try {
+                    const stored = await AsyncStorage.getItem(CASES_KEY);
+                    if (stored) {
+                        const list = JSON.parse(stored);
+                        const next = list.map((c) =>
+                            c.id === item.id ? { ...c, isNew: false, status: "Open" } : c
+                        );
+                        await AsyncStorage.setItem(CASES_KEY, JSON.stringify(next));
+                    }
+                } catch (err) {
+                    console.log("Storage update error:", err);
+                }
+            })();
+        }
+    }, [isOpen, item.id]);
 
     const onStart = () => {
         console.log("Start working on", item.id);
@@ -46,9 +70,13 @@ const CaseDetail = () => {
 
                     {/* Header Row */}
                     <View style={styles.headRow}>
-                        <Text style={styles.idTxt}>{item.id}</Text>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeTxt}>{item.status}</Text>
+                        <Text style={styles.idTxt} numberOfLines={1}>
+                            {item.title || item.id}
+                        </Text>
+                        <View style={[styles.badge, isOpen && styles.openBadge]}>
+                            <Text style={[styles.badgeTxt, isOpen && styles.openBadgeTxt]}>
+                                {item.status}
+                            </Text>
                         </View>
                     </View>
 
@@ -59,12 +87,14 @@ const CaseDetail = () => {
                     <View style={styles.card}>
                         <View style={styles.itemRow}>
                             <Text style={styles.label}>Title</Text>
-                            <Text style={styles.val}>New Case Received</Text>
+                            <Text style={styles.val} numberOfLines={1}>
+                                {item.title || "New Case Received"}
+                            </Text>
                         </View>
 
                         <View style={styles.itemRow}>
                             <Text style={styles.label}>Case ID</Text>
-                            <Text style={styles.val}>{item.id}</Text>
+                            <Text style={styles.val} numberOfLines={1}>{item.id}</Text>
                         </View>
 
                         <View style={styles.itemRow}>
@@ -125,6 +155,8 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.Bold,
         fontSize: RFValue(24),
         color: colors.textPrimary,
+        flex: 1,
+        marginRight: 10,
     },
     badge: {
         backgroundColor: colors.indigo,
@@ -132,10 +164,21 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 8,
     },
+    openBadge: {
+        backgroundColor: colors.tagBg,
+        paddingHorizontal: 12,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
     badgeTxt: {
         fontFamily: Fonts.Bold,
         fontSize: RFValue(11),
         color: colors.white,
+    },
+    openBadgeTxt: {
+        fontFamily: Fonts.Medium,
+        fontSize: RFValue(11.5),
+        color: colors.tagText,
     },
     descTxt: {
         fontFamily: Fonts.Regular,
@@ -171,6 +214,8 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.SemiBold,
         fontSize: RFValue(13),
         color: colors.textPrimary,
+        flex: 1,
+        textAlign: "right",
     },
     btnWrap: {
         paddingBottom: deviceheight * 0.035,
