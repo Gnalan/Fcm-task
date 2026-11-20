@@ -30,6 +30,7 @@ const saveTappedCase = async (id, title, desc) => {
             desc: desc || "A new service case has been assigned",
             status: "NEW",
             isNew: true,
+            receivedAt: Date.now(),
         };
         // Prepend WITHOUT modifying existing cases' statuses
         await AsyncStorage.setItem(CASES_KEY, JSON.stringify([newCase, ...existing]));

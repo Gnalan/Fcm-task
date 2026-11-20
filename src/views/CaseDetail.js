@@ -6,9 +6,11 @@ import {
     SafeAreaView,
     StatusBar,
     TouchableOpacity,
+    Image,
 } from "react-native";
 import { colors } from "../components/colors";
 import { Fonts } from "../components/fonts";
+import { Images } from "../components/images";
 import { devicewidth, deviceheight, borderradius } from "../components/Dimensions";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -16,6 +18,25 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CASES_KEY = "@cases_list";
+
+const formatDateTime = (ts) => {
+    const d = ts ? new Date(ts) : new Date();
+    if (isNaN(d.getTime())) return "Just now";
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+
+    let hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const formattedHours = hours.toString().padStart(2, "0");
+
+    return `${day} ${month} ${year}, ${formattedHours}:${minutes} ${ampm}`;
+};
 
 const CaseDetail = () => {
     const navigation = useNavigation();
@@ -25,6 +46,7 @@ const CaseDetail = () => {
         title: "New Case Received",
         desc: "A new service case has been assigned",
         status: "NEW",
+        receivedAt: Date.now(),
     };
 
     const isOpen = item.status === "Open";
@@ -65,7 +87,11 @@ const CaseDetail = () => {
                         onPress={() => navigation.goBack()}
                         activeOpacity={0.7}
                     >
-                        <Text style={styles.backTxt}>Back</Text>
+                        <Image
+                            source={Images.back}
+                            style={styles.backImg}
+                            resizeMode="contain"
+                        />
                     </TouchableOpacity>
 
                     {/* Header Row */}
@@ -99,7 +125,9 @@ const CaseDetail = () => {
 
                         <View style={styles.itemRow}>
                             <Text style={styles.label}>Received</Text>
-                            <Text style={styles.val}>Just now</Text>
+                            <Text style={styles.val}>
+                                {formatDateTime(item.receivedAt || item.timestamp)}
+                            </Text>
                         </View>
 
                         <View style={[styles.itemRow, styles.noBorder]}>
@@ -137,13 +165,20 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     backBtn: {
-        paddingVertical: deviceheight * 0.055,
-        alignSelf: "flex-start",
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.white,
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1,
+        marginTop: deviceheight * 0.065,
+        marginBottom: deviceheight * 0.015,
     },
-    backTxt: {
-        fontFamily: Fonts.Medium,
-        fontSize: RFValue(14),
-        color: colors.indigo,
+    backImg: {
+        width: 50,
+        height: 50,
+
     },
     headRow: {
         flexDirection: "row",

@@ -73,6 +73,7 @@ const CASES_KEY = '@cases_list';
                     desc: desc,
                     status: 'NEW',
                     isNew: true,
+                    receivedAt: Date.now(),
                 };
                 // Prepend newCase WITHOUT changing status of previous cases
                 await AsyncStorage.setItem(CASES_KEY, JSON.stringify([newCase, ...existing]));

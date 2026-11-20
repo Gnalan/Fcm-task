@@ -168,6 +168,7 @@ const CaseList = () => {
                 desc,
                 status: "NEW",
                 isNew: true,
+                receivedAt: Date.now(),
             };
 
             // Add to list immediately (no refresh needed)
@@ -229,6 +230,7 @@ const CaseList = () => {
                         desc,
                         status: "NEW",
                         isNew: true,
+                        receivedAt: Date.now(),
                     });
                 } else {
                     loadCases();
@@ -266,6 +268,7 @@ const CaseList = () => {
                         desc,
                         status: "NEW",
                         isNew: true,
+                        receivedAt: Date.now(),
                     });
                 }
             } catch (err) {
@@ -404,17 +407,17 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
     },
     bell: {
-        width: 20,
-        height: 20,
+        width: 25,
+        height: 25,
         tintColor: colors.textPrimary,
     },
     badgeCount: {
         position: "absolute",
         top: -4,
         right: -4,
-        minWidth: 19,
-        height: 19,
-        borderRadius: 9.5,
+        minWidth: 22,
+        height: 22,
+        borderRadius: 13,
         backgroundColor: colors.indigo,
         justifyContent: "center",
         alignItems: "center",
@@ -424,7 +427,7 @@ const styles = StyleSheet.create({
     },
     badgeCountText: {
         fontFamily: Fonts.Bold,
-        fontSize: RFValue(9.5),
+        fontSize: RFValue(10),
         color: colors.white,
         textAlign: "center",
         lineHeight: RFValue(12),
