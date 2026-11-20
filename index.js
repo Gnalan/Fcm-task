@@ -29,6 +29,8 @@ const CASES_KEY = '@cases_list';
             android: {
                 channelId,
                 importance: AndroidImportance.HIGH,
+                smallIcon: 'ic_notification',
+                largeIcon: 'ic_launcher',
                 pressAction: { id: 'default' },
             },
         });

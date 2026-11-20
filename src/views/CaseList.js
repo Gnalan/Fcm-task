@@ -9,6 +9,8 @@ import {
     TouchableOpacity,
     Image,
     AppState,
+    BackHandler,
+    Alert,
 } from "react-native";
 import { colors } from "../components/colors";
 import { Fonts } from "../components/fonts";
@@ -105,6 +107,8 @@ const CaseList = () => {
                 android: {
                     channelId,
                     importance: AndroidImportance.HIGH,
+                    smallIcon: 'ic_notification',
+                    largeIcon: 'ic_launcher',
                     pressAction: { id: "default" },
                 },
             });
@@ -134,6 +138,26 @@ const CaseList = () => {
                 loadCases();
             }
         }, [loadCases])
+    );
+
+    // Hardware back press confirmation on CaseList
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                Alert.alert("Exit App", "Are you sure you want to exit?", [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Exit", onPress: () => BackHandler.exitApp() },
+                ]);
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener(
+                "hardwareBackPress",
+                onBackPress
+            );
+
+            return () => subscription.remove();
+        }, [])
     );
 
     // 2. Listen for foreground FCM messages

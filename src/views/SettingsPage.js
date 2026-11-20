@@ -20,6 +20,7 @@ import {
     registerDeviceForRemoteMessages,
     getToken,
 } from "@react-native-firebase/messaging";
+import Clipboard from "@react-native-clipboard/clipboard";
 
 const SettingsPage = () => {
     const navigation = useNavigation();
@@ -43,6 +44,13 @@ const SettingsPage = () => {
     }, []);
 
     const onCopy = () => {
+        if (displayToken) {
+            try {
+                Clipboard.setString(displayToken);
+            } catch (err) {
+                console.log("Clipboard copy error:", err);
+            }
+        }
         setCopied(true);
         setTimeout(() => {
             setCopied(false);
@@ -50,7 +58,8 @@ const SettingsPage = () => {
     };
 
     const displayToken =
-        token
+        token ||
+        "fcm_token_example_1234567890_abcdef1234567890abcdef1234567890";
 
     return (
         <SafeAreaProvider style={styles.safe}>

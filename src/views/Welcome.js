@@ -208,14 +208,14 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontFamily: Fonts.Bold,
-    fontSize: RFValue(22),
+    fontSize: RFValue(18),
     color: colors.textPrimary,
     textAlign: "center",
     marginBottom: deviceheight * 0.015,
   },
   subheading: {
     fontFamily: Fonts.Regular,
-    fontSize: RFValue(13.5),
+    fontSize: RFValue(13),
     color: colors.textSecondary,
     textAlign: "center",
     lineHeight: RFValue(20),
